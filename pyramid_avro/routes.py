@@ -6,6 +6,7 @@ import traceback
 from avro import io as avro_io
 from avro import ipc as avro_ipc
 from avro import protocol as avro_protocol
+from avro import schema as avro_schema
 from pyramid import response as p_response
 from pyramid import threadlocal as p_threadlocal
 from webob import exc as http_exc
@@ -55,6 +56,10 @@ class AvroServiceRoute(object):
         self.responder = ServiceResponder(self.execute_command, self.protocol)
 
     def register_message_impl(self, message, message_impl):
+
+        if self.protocol.messages.get(message) is None:
+            raise avro_schema.AvroException("Message '{}' not defined.")
+
         self.dispatch[message] = message_impl
 
     def validate_request(self, request):
@@ -63,7 +68,6 @@ class AvroServiceRoute(object):
             raise http_exc.HTTPBadRequest()
 
     def __call__(self, request):
-
         self.validate_request(request)
         reader = avro_ipc.FramedReader(request.body_file)
         try:

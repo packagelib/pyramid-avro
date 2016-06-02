@@ -22,31 +22,22 @@ def add_avro_route(config, service_name, pattern=None, protocol_file=None,
         registry = config.registry
         protocol_path = protocol_file
         schema_path = schema_file
-        service_path = pattern
-
-        base_dir = avro_settings["protocol_dir"]
-        if not os.path.isabs(base_dir):
-            pkg_root = os.path.dirname(config.root_package.__file__)
-            base_dir = os.path.join(pkg_root, base_dir)
-
         # Start route discovery.
         route = ".".join(["avro", service_name])
 
-        if service_path is None:
-            service_path = service_name
+        base_dir = avro_settings["protocol_dir"]
+        if base_dir is None or not os.path.isabs(base_dir):
+            pkg_root = os.path.dirname(config.root_package.__file__)
+            parts = [pkg_root]
+            if base_dir is not None:
+                parts.append(base_dir)
+            base_dir = os.path.join(*parts)
 
-        if service_path.startswith("/"):
-            service_path = service_path[1:]
-
-        path_prefix = ""
-        if pattern is None:
-            path_prefix = avro_settings.get("default_path_prefix") or ""
-
-        if path_prefix:
-            if not path_prefix.startswith("/"):
-                path_prefix = "/" + path_prefix
-
-        service_path = "/".join([path_prefix, service_path])
+        service_path = settings.derive_service_path(
+            service_name,
+            pattern,
+            avro_settings.get("default_path_prefix")
+        )
         # Discover protocol and schema files.
         if protocol_path is not None:
             if not os.path.isabs(protocol_path):
@@ -91,7 +82,9 @@ def add_avro_route(config, service_name, pattern=None, protocol_file=None,
             utils.compile_protocol(protocol_path, schema_path, tools_jar)
 
         try:
-            route_def = routes.AvroServiceRoute(route, schema_path)
+            with open(schema_path) as _file:
+                schema_contents = _file.read()
+            route_def = routes.AvroServiceRoute(route, schema_contents)
         except Exception:
             err = "Failed to register route {}:\n {}".format(
                 service_name,

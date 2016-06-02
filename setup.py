@@ -25,13 +25,30 @@ with open(os.path.join(here, "pyramid_avro", "version.py")) as _file:
 
 class PyTest(TestCommand):
     """Copied from py.test docs."""
+
+    user_options = TestCommand.user_options + [
+        ("with-coverage=", "c", "Generate coverage reports.")
+    ]
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.with_coverage = None
+
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_suite = self.test_suite or test_dir
         self.test_args = [self.test_suite]
+        self.test_args += ["-rw"]
+
+        if self.with_coverage:
+            self.test_args += [
+                "--cov={}".format("pyramid_avro"),
+                "--cov-report={}".format(self.with_coverage)
+            ]
 
     def run_tests(self):
         import pytest
+        print("Running: {}".format(" ".join(self.test_args)))
         pytest.main(self.test_args)
 
 
@@ -55,5 +72,8 @@ setup(
     zip_safe=False,
     install_requires=REQUIREMENTS,
     tests_require=TEST_REQUIREMENTS,
-    test_suite="tests"
+    test_suite="tests",
+    cmdclass={
+        "test": PyTest
+    }
 )

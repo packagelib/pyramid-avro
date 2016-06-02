@@ -1,17 +1,15 @@
 import copy
 import io
 import logging
-import os
 import traceback
 
 from avro import io as avro_io
 from avro import ipc as avro_ipc
+from avro import protocol as avro_protocol
 from pyramid import response as p_response
 from pyramid import threadlocal as p_threadlocal
 from webob import exc as http_exc
 from zope import interface as zi
-
-from . import utils
 
 logger = logging.getLogger(__name__)
 
@@ -50,38 +48,28 @@ class AvroServiceRoute(object):
     protocol = None
     responder = None
 
-    def __init__(self, path, schema_file):
+    def __init__(self, path, schema):
         self.path = path
-        self.schema_file = schema_file
         self.dispatch = {}
-        self.load_protocol()
-
-    def load_protocol(self):
-        self.protocol = utils.get_protocol_from_file(self.schema_file)
+        self.protocol = avro_protocol.parse(schema)
         self.responder = ServiceResponder(self.execute_command, self.protocol)
 
     def register_message_impl(self, message, message_impl):
         self.dispatch[message] = message_impl
 
     def validate_request(self, request):
-        method = request.method.upper()
-        if method != "POST":
-            err = "{} is not allowed.".format(method)
-            raise http_exc.HTTPMethodNotAllowed(err)
-
         content_length = int(request.headers["content-length"])
         if request.body_file is None or content_length == 0:
             raise http_exc.HTTPBadRequest()
 
     def __call__(self, request):
+
         self.validate_request(request)
-
         reader = avro_ipc.FramedReader(request.body_file)
-
         try:
             request_data = reader.read_framed_message()
         except avro_ipc.ConnectionClosedException:
-            logger.warning("Failed to process request.")
+            logger.exception("Failed to process request.")
             return http_exc.HTTPBadRequest()
 
         try:

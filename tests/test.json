@@ -1,0 +1,34 @@
+{
+    "namespace": null,
+    "protocol": "Foo",
+    "messages": {
+        "get": {
+            "errors": ["Exception"],
+            "request": [{
+                "type": ["string"],
+                "name": "arg1"
+            }],
+            "response": ["string"]
+        },
+        "get2": {
+            "errors": ["Exception"],
+            "request": [{
+                "type": ["string"],
+                "name": "arg1"
+            }],
+            "response": ["string"]
+        }
+    },
+    "types": [
+        {
+            "fields": [
+                {
+                    "type": "string",
+                    "name": "message"
+                }
+            ],
+            "type": "error",
+            "name": "Exception"
+        }
+    ]
+}

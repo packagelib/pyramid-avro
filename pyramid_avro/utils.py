@@ -9,7 +9,6 @@ from avro import protocol as avro_protocol
 logger = logging.getLogger(__name__)
 
 
-# TODO: Bring this under test.
 def run_subprocess_command(command, out_stream=sys.stdout, bail=True):
     encoding = sys.stdout.encoding or "utf-8"
     if hasattr(command, "__iter__"):
@@ -21,16 +20,22 @@ def run_subprocess_command(command, out_stream=sys.stdout, bail=True):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
+
     while proc.poll() is None:
         line = proc.stdout.readline()[:-1].strip()
         if line and out_stream:
-            out_stream.write(line.decode(encoding))
+            try:
+                out_stream.write(line.decode(encoding))
+            except TypeError:
+                out_stream.write(line)
             out_stream.write("\n")
 
     line = proc.stdout.read()[:-1].strip()
-
     if line and out_stream:
-        out_stream.write(line.decode(encoding))
+        try:
+            out_stream.write(line.decode(encoding))
+        except TypeError:
+            out_stream.write(line)
         out_stream.write("\n")
 
     exit_code = proc.returncode

@@ -10,87 +10,102 @@ from . import settings
 from . import utils
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
-def add_avro_route(config, service_name, pattern=None, protocol_file=None,
-                   schema_file=None):
+def add_avro_route(config, service_name, pattern=None, protocol=None,
+                   schema=None):
 
-    def register():
-        # Shadowing vars.
-        avro_settings = settings.get_config_options(config.get_settings())
-        registry = config.registry
-        protocol_path = protocol_file
-        schema_path = schema_file
-        # Start route discovery.
-        route = ".".join(["avro", service_name])
+    avro_settings = settings.get_config_options(config.get_settings())
+    service_def = avro_settings.get("service").get(service_name)
+    no_service_def = protocol is None and schema is None
+    if no_service_def and service_def is None:
+        err = "Not enough information provided to register service '{}'. " \
+              "Please provide an ini file definition or a " \
+              "protocol/schema when calling 'add_avro_route'.".format(
+                service_name)
 
-        base_dir = avro_settings["protocol_dir"]
-        if base_dir is None or not os.path.isabs(base_dir):
-            pkg_root = os.path.dirname(config.root_package.__file__)
-            parts = [pkg_root]
-            if base_dir is not None:
-                parts.append(base_dir)
-            base_dir = os.path.join(*parts)
+        raise p_config.ConfigurationError(err)
 
-        service_path = settings.derive_service_path(
-            service_name,
-            pattern,
-            avro_settings.get("default_path_prefix")
-        )
-        # Discover protocol and schema files.
-        if protocol_path is not None:
-            if not os.path.isabs(protocol_path):
-                # Make sure this is an absolute path.
-                protocol_path = os.path.join(base_dir, protocol_path)
+    # Derive service url path.
+    service_path = settings.derive_service_path(
+        service_name,
+        pattern,
+        avro_settings["default_path_prefix"]
+    )
 
-        # If schema wasn't given, try to auto-discover it.
-        if schema_path is not None:
-            if not os.path.isabs(schema_path):
-                schema_path = os.path.join(base_dir, schema_path)
+    # Derive base directory for files.
+    base_dir = avro_settings["protocol_dir"]
+    if base_dir is None or not os.path.isabs(base_dir):
+        parts = [os.path.dirname(config.root_package.__file__)]
+        if base_dir is not None:
+            parts.append(base_dir)
+        base_dir = os.path.join(*parts)
 
-            if protocol_path is None:
-                directory, filename = os.path.split(schema_path)
-                filename, ext = os.path.splitext(filename)
-                filename = ".".join([filename, "avdl"])
-                protocol_path = os.path.join(directory, filename)
+    # Discover protocol and schema files.
+    if protocol is not None:
+        if not os.path.isabs(protocol):
+            # Make sure this is an absolute path.
+            protocol = os.path.join(base_dir, protocol)
 
-        if protocol_path is None:
-            # Try to auto-discover the protocol file.
-            filename = ".".join([service_name, "avdl"])
-            protocol_path = os.path.join(base_dir, filename)
-
-            # If we had no protocol path AND no schema, blow up.
-            if schema_path is None and not os.path.exists(protocol_path):
-                err = "Must have 'schema_file' or 'protocol_file' defined " \
-                      "for service {}.".format(service_name)
-                raise p_config.ConfigurationError(err)
-
-        if schema_path is None:
-            directory, filename = os.path.split(protocol_path)
+        # If schema was none, "auto-discover" it.
+        if schema is None:
+            directory, filename = os.path.split(protocol)
             filename, ext = os.path.splitext(filename)
             filename = ".".join([filename, "avpr"])
-            schema_path = os.path.join(directory, filename)
+            schema = os.path.join(directory, filename)
+
+    # Normalize schema path.
+    if schema is not None:
+        if not os.path.isabs(schema):
+            schema = os.path.join(base_dir, schema)
+
+    auto_compile = avro_settings["auto_compile"]
+    if not auto_compile and not os.path.exists(schema):
+        raise p_config.ConfigurationError(
+            "No such file or directory '{}'".format(schema)
+        )
+
+    if avro_settings["auto_compile"]:
+        tools_jar = avro_settings["tools_jar"]
+        if tools_jar is None:
+            err = "Cannot auto_compile without tools_jar defined."
+            raise p_config.ConfigurationError(err)
+
+        if not os.path.exists(tools_jar):
+            err = "No such file or directory: {}".format(tools_jar)
+            raise p_config.ConfigurationError(err)
+
+        if protocol is None:
+            err = "Cannot auto_compile without a protocol defined."
+            raise p_config.ConfigurationError(err)
+
+    def register():
+        # Begin route definition.
+        route = ".".join(["avro", service_name])
+        registry = config.registry
+        # Shadow outer-scope
+        protocol_file = protocol
+        schema_file = schema
 
         if avro_settings["auto_compile"]:
-            tools_jar = avro_settings["tools_jar"]
-            if protocol_path is None or schema_path is None:
-                err = "Must have 'schema_file' or 'protocol_file' defined " \
-                      "for service {}.".format(service_name)
-                raise p_config.ConfigurationError(err)
-
-            utils.compile_protocol(protocol_path, schema_path, tools_jar)
+            utils.compile_protocol(protocol_file, schema_file, tools_jar)
 
         try:
-            with open(schema_path) as _file:
+            with open(schema_file) as _file:
                 schema_contents = _file.read()
+        except Exception:
+            message = traceback.format_exc()
+            raise p_config.ConfigurationError(message)
+
+        try:
             route_def = routes.AvroServiceRoute(route, schema_contents)
         except Exception:
-            err = "Failed to register route {}:\n {}".format(
-                service_name,
-                traceback.format_exc()
+            raise p_exc.ConfigurationError(
+                "Failed to register route {}:\n {}".format(
+                    service_name,
+                    traceback.format_exc()
+                )
             )
-            raise p_exc.ConfigurationError(err)
 
         registry.registerUtility(
             route_def,
@@ -111,7 +126,7 @@ def add_avro_route(config, service_name, pattern=None, protocol_file=None,
     )
 
 
-def set_avro_message(config, service_name, message_impl, message=None):
+def register_avro_message(config, service_name, message_impl, message=None):
 
     if isinstance(message_impl, str):
         message_impl = config.maybe_dotted(message_impl)
@@ -122,10 +137,10 @@ def set_avro_message(config, service_name, message_impl, message=None):
         )
 
     message_name = message or message_impl.__name__
+    route = ".".join(["avro", service_name])
 
     def register():
         registry = config.registry
-        route = ".".join(["avro", service_name])
         route_def = registry.queryUtility(routes.IAvroServiceRoute, name=route)
         if route_def is None:
             err = "Service '{}' has no route defined.".format(service_name)
@@ -146,7 +161,7 @@ def set_avro_message(config, service_name, message_impl, message=None):
 
 def includeme(config):
     config.add_directive("add_avro_route", add_avro_route)
-    config.add_directive("set_avro_message", set_avro_message)
+    config.add_directive("register_avro_message", register_avro_message)
     options = settings.get_config_options(config.get_settings())
     service_defs = options.get("service") or {}
     for service_name, service_opts in service_defs.items():

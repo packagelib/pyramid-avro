@@ -7,7 +7,8 @@ from pyramid import config as p_config
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-protocol_file = os.path.join(here, "test.json")
+protocol_dir = os.path.join(here, "protocols")
+schema_file = os.path.join(protocol_dir, "test.avpr")
 test_db = os.path.abspath(
     os.path.join(
         here,
@@ -28,8 +29,8 @@ def get_impl(request):
 def test_app(global_config, **app_settings):
     config = p_config.Configurator(settings=app_settings)
     config.include("pyramid_avro")
-    config.add_avro_route("foo", schema_file=protocol_file)
-    config.set_avro_message("foo", get_impl, "get")
+    config.add_avro_route("foo", schema=schema_file)
+    config.register_avro_message("foo", get_impl, "get")
     return config.make_wsgi_app()
 
 

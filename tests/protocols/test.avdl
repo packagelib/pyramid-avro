@@ -1,0 +1,9 @@
+protocol Foo {
+
+    error Exception {
+        string message;
+    }
+
+    string get(string arg1) throws Exception;
+    string get2(string arg1) throws Exception;
+}

@@ -56,9 +56,10 @@ class AvroServiceRoute(object):
         self.responder = ServiceResponder(self.execute_command, self.protocol)
 
     def register_message_impl(self, message, message_impl):
-
         if self.protocol.messages.get(message) is None:
-            raise avro_schema.AvroException("Message '{}' not defined.")
+            raise avro_schema.AvroException(
+                "Message '{}' not defined.".format(message)
+            )
 
         self.dispatch[message] = message_impl
 

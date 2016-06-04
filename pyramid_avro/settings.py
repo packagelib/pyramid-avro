@@ -42,8 +42,8 @@ CONFIG_DEFAULTS = {
 }
 
 SERVICE_DEF_PROPERTIES = frozenset((
-    "protocol_file",
-    "schema_file",
+    "protocol",
+    "schema",
     "pattern"
 ))
 
@@ -77,20 +77,18 @@ def get_config_options(configuration):
                     )
                 value = value.strip()
                 service_def[opt] = value
+            defined_protocol = "protocol" in service_def
+            defined_schema = "schema" in service_def
+            if not (defined_protocol or defined_schema):
+                raise p_config.ConfigurationError(
+                    "Service must have either protocol or schema defined."
+                )
 
             services[service_name] = service_def
             key = "service"
             val = services
         options[key] = val
-
-    auto_compile = p_settings.asbool(options.get("auto_compile"))
-    tools_jar = options.get("tools_jar") or None
-    valid_tools_jar = isinstance(tools_jar, basestring) and tools_jar
-
-    if auto_compile and not valid_tools_jar:
-        err = "'tools_jar' must be defined if 'auto_compile' is turned on."
-        raise p_config.ConfigurationError(err)
-    options["auto_compile"] = auto_compile
+    options["auto_compile"] = p_settings.asbool(options.get("auto_compile"))
     return options
 
 

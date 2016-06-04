@@ -152,23 +152,6 @@ class GetConfigOptionsTest(unittest.TestCase):
 
         self.assertEqual(defaults, avro_settings)
 
-    def test_auto_compile_tools_input(self):
-
-        settings = {"avro.auto_compile": True}
-        self.assertRaises(
-            p_config.ConfigurationError,
-            pa_settings.get_config_options,
-            settings
-        )
-
-        for val in BAD_INPUT:
-            settings["tools_jar"] = val
-            self.assertRaises(
-                p_config.ConfigurationError,
-                pa_settings.get_config_options,
-                settings
-            )
-
     def test_auto_compile_truthy(self):
         expected = {
             "default_path_prefix": None,
@@ -202,7 +185,7 @@ class GetConfigOptionsTest(unittest.TestCase):
         )
 
     def test_service_def_properties(self):
-        foo_service_str = "protocol_file = foo.avdl"
+        foo_service_str = "protocol = foo.avdl"
         settings_dict = {"avro.service.foo": foo_service_str}
         expected = {
             "default_path_prefix": None,
@@ -211,7 +194,7 @@ class GetConfigOptionsTest(unittest.TestCase):
             "tools_jar": None,
             "service": {
                 "foo": {
-                    "protocol_file": "foo.avdl"
+                    "protocol": "foo.avdl"
                 }
             }
         }
@@ -226,16 +209,16 @@ class GetConfigOptionsTest(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         # Test adding schema path.
-        foo_service_str += "\nschema_file = foo.avpr"
+        foo_service_str += "\nschema = foo.avpr"
         settings_dict["avro.service.foo"] = foo_service_str
-        expected["service"]["foo"]["schema_file"] = "foo.avpr"
+        expected["service"]["foo"]["schema"] = "foo.avpr"
         actual = pa_settings.get_config_options(settings_dict)
         self.assertEqual(expected, actual)
 
     def test_multiple_service_def(self):
         settings_dict = {
-            "avro.service.foo": "protocol_file = foo.avdl",
-            "avro.service.bar": "schema_file = bar.avpr",
+            "avro.service.foo": "protocol = foo.avdl",
+            "avro.service.bar": "schema = bar.avpr",
         }
         expected = {
             "default_path_prefix": None,
@@ -244,15 +227,53 @@ class GetConfigOptionsTest(unittest.TestCase):
             "tools_jar": None,
             "service": {
                 "foo": {
-                    "protocol_file": "foo.avdl"
+                    "protocol": "foo.avdl"
                 },
                 "bar": {
-                    "schema_file": "bar.avpr"
+                    "schema": "bar.avpr"
                 }
             }
         }
         actual = pa_settings.get_config_options(settings_dict)
         self.assertEqual(expected, actual)
+
+    def test_undefined_protocol_or_service(self):
+        # Test with neither defined it freaks
+        settings_dict = {
+            "avro.service.foo": "pattern = /foo"
+        }
+        self.assertRaises(
+            p_config.ConfigurationError,
+            pa_settings.get_config_options,
+            settings_dict
+        )
+
+        # test with at least one it's fine.
+        settings_dict = {
+            "avro.service.foo": "protocol = foo.avdl"
+        }
+        expected = {
+            "default_path_prefix": None,
+            "protocol_dir": None,
+            "auto_compile": False,
+            "tools_jar": None,
+            "service": {"foo": {"protocol": "foo.avdl"}}
+        }
+        actual = pa_settings.get_config_options(settings_dict)
+        self.assertDictEqual(expected, actual)
+
+        settings_dict = {
+            "avro.service.foo": "schema = foo.avpr"
+        }
+        expected = {
+            "default_path_prefix": None,
+            "protocol_dir": None,
+            "auto_compile": False,
+            "tools_jar": None,
+            "service": {"foo": {"schema": "foo.avpr"}}
+        }
+        actual = pa_settings.get_config_options(settings_dict)
+        self.assertDictEqual(expected, actual)
 
 
 class PyramidConfiguratorTest(unittest.TestCase):

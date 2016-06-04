@@ -1,7 +1,9 @@
 import json
 import os
+import io
 import tempfile
 import unittest
+import StringIO
 
 import mock
 from avro import protocol as avro_protocol
@@ -9,6 +11,48 @@ from avro import protocol as avro_protocol
 from pyramid_avro import utils as pa_utils
 
 sub_proc_cmd = "pyramid_avro.utils.run_subprocess_command"
+
+
+class RunSubprocessCommandTest(unittest.TestCase):
+
+    def test_function(self):
+        _stdout_buffer = StringIO.StringIO()
+        _stdout_buffer.seek(os.SEEK_SET)
+
+        def _dummy_poll():
+            if _stdout_buffer.getvalue() == "":
+                _stdout_buffer.write("foo\n")
+                _stdout_buffer.write("foo\n")
+                _stdout_buffer.seek(os.SEEK_SET)
+                return None
+            return 0
+
+        _capture_buffer = io.BytesIO()
+
+        with mock.patch("pyramid_avro.utils.subprocess") as subprocess:
+            subprocess.Popen.return_value.poll = _dummy_poll
+            subprocess.Popen.return_value.stdout = _stdout_buffer
+            subprocess.Popen.return_value.returncode = 0
+
+            pa_utils.run_subprocess_command(
+                ["echo", "'foo'"],
+                out_stream=_capture_buffer
+            )
+            self.assertEqual(
+                _capture_buffer.getvalue(),
+                "foo\nfoo\n"
+            )
+
+        with mock.patch("pyramid_avro.utils.subprocess") as subprocess:
+            subprocess.Popen.return_value.poll = _dummy_poll
+            subprocess.Popen.return_value.stdout = _stdout_buffer
+            subprocess.Popen.return_value.returncode = 1
+
+            self.assertRaises(
+                SystemExit,
+                pa_utils.run_subprocess_command,
+                ["echo", "'foo'"]
+            )
 
 
 class CompileProtocolTest(unittest.TestCase):
@@ -119,4 +163,3 @@ class GetProtocolFromFileTest(unittest.TestCase):
         self.assertIsNotNone(protocol)
         self.assertIsInstance(protocol, avro_protocol.Protocol)
         os.remove(schema_path)
-

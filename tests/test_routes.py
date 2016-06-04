@@ -13,7 +13,8 @@ from webob import exc as http_exc
 from pyramid_avro import routes as pa_routes
 
 here = os.path.abspath(os.path.dirname(__file__))
-dummy_protocol_file = os.path.join(here, "test.json")
+protocol_dir = os.path.join(here, "protocols")
+dummy_protocol_file = os.path.join(protocol_dir, "test.avpr")
 with open(dummy_protocol_file) as _file:
     dummy_protocol = _file.read()
 dummy_avro_protocol = avro_protocol.parse(dummy_protocol)

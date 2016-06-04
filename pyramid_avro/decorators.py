@@ -11,7 +11,7 @@ class avro_message(p_view.view_config):
         # attachment.
         def callback(context, name, ob):
             config = context.config.with_package(info.module)
-            config.set_avro_message(message_impl=ob, **settings)
+            config.register_avro_message(message_impl=ob, **settings)
 
         info = self.venusian.attach(
             wrapped,

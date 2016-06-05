@@ -11,6 +11,17 @@ This project is a Pyramid plugin built for integrating Avro protocol files into 
 
 Be sure to check out the :ref:`Quickstart Project <quickstart>` documentation to get started.
 
+:PyPi: https://pypi.python.org/pypi/pyramid-avro/
+:Coverage:
+   .. image:: https://coveralls.io/repos/github/packagelib/pyramid-avro/badge.svg?branch=master
+        :target: https://coveralls.io/github/packagelib/pyramid-avro?branch=master
+        :alt: Coverage Status
+:Build Status:
+   .. image:: https://travis-ci.org/packagelib/pyramid-avro.svg?branch=master
+        :target: https://travis-ci.org/packagelib/pyramid-avro
+        :alt: Build Status
+:License: Apache License (2.0)
+
 Python 3 Support
 ----------------
 Unfortunately it is not yet available, as this plugin depends on Apache's `avro <https://pypi.python.org/pypi/avro/>`_ library.

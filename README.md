@@ -26,5 +26,7 @@ Actual Docs
 -----------
 The official documentation can be found at: https://pyramid-avro.readthedocs.org/
 
+* **PyPI**: https://pypi.python.org/pypi/pyramid-avro/
 * **Coverage**: [![Coverage Status](https://coveralls.io/repos/github/packagelib/pyramid-avro/badge.svg?branch=master)](https://coveralls.io/github/packagelib/pyramid-avro?branch=master)
-* **Build Status**: [![Build Status](https://travis-ci.org/packagelib/pyramid-avro.svg?branch=alex%2Fadd-coverage-ci)](https://travis-ci.org/packagelib/pyramid-avro)
+* **Build Status**: [![Build Status](https://travis-ci.org/packagelib/pyramid-avro.svg?branch=master)](https://travis-ci.org/packagelib/pyramid-avro)
+* **License**: Apache License (2.0)

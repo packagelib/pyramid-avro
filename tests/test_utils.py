@@ -36,7 +36,7 @@ class RunSubprocessCommandTest(unittest.TestCase):
 
             pa_utils.run_subprocess_command(
                 ["echo", "'foo'"],
-                out_stream=_capture_buffer
+                out_buffer=_capture_buffer
             )
             self.assertEqual(
                 _capture_buffer.getvalue(),

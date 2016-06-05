@@ -14,6 +14,29 @@ logger = logging.getLogger(__name__)
 
 def add_avro_route(config, service_name, pattern=None, protocol=None,
                    schema=None):
+    """
+    Queues an action to add an avro route to this config based on the provided
+    parameters.
+
+    These can come from either a configuration file or issued programmatically
+    against the config after including pyramid_avro.
+
+    This function performs a series of validations to ensure that the provided
+    input is actually capable of being registered.
+
+    General rules of thumb are:
+        # You definitely need AT LEAST a schema file defined.
+        # If you provide "auto_compile" in your INI file and:
+            ## DID NOT provide tools_jar - BOOM
+            ## DID NOT provide a protocol file - BOOM
+        # Any file paths are subject to "No such file or directory" errors.
+
+    :param config: a pyramid.config.Configurator object.
+    :param service_name: a service name to register a route for.
+    :param pattern: a url path pattern to register for this service.
+    :param protocol: an optional Avro protocol file.
+    :param schema: an optional Avro schema file.
+    """
 
     avro_settings = settings.get_config_options(config.get_settings())
     service_def = avro_settings.get("service").get(service_name)
@@ -65,7 +88,7 @@ def add_avro_route(config, service_name, pattern=None, protocol=None,
             "No such file or directory '{}'".format(schema)
         )
 
-    if avro_settings["auto_compile"]:
+    if auto_compile:
         tools_jar = avro_settings["tools_jar"]
         if tools_jar is None:
             err = "Cannot auto_compile without tools_jar defined."
@@ -127,6 +150,24 @@ def add_avro_route(config, service_name, pattern=None, protocol=None,
 
 
 def register_avro_message(config, service_name, message_impl, message=None):
+    """
+    Registers a callable object as the implementation for a message belonging
+    to an avro protocol service whose route has been added with the above
+    "add_avro_route" directive.
+
+    The message implementation must be callable. It may be any object that is
+    callable and accepts a request.
+
+    If the message name is not explicitly provided, this method will attempt
+    to pull it directly off of the "__name__" attribute of the provided
+    "message_impl".
+
+    :param config: a pyramid.config.Configurator object.
+    :param service_name: an avro service name added with add_avro_route.
+    :param message_impl: an implementation for message.
+    :param message: an optional message name.
+    :return:
+    """
 
     if isinstance(message_impl, str):
         message_impl = config.maybe_dotted(message_impl)
@@ -160,6 +201,16 @@ def register_avro_message(config, service_name, message_impl, message=None):
 
 
 def includeme(config):
+    """
+    Adds directives:
+        # add_avro_route
+        # register_avro_message
+
+    Scans the provided settings for any pre-defined services and adds them at
+    this step.
+
+    :param config: a pyramid.config.Configurator object.
+    """
     config.add_directive("add_avro_route", add_avro_route)
     config.add_directive("register_avro_message", register_avro_message)
     options = settings.get_config_options(config.get_settings())

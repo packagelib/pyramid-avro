@@ -83,3 +83,30 @@ class AvroMessageDecorator(unittest.TestCase):
             name="avro.baz"
         )
         self.assertEqual(baz_utility.dispatch["get"], get)
+
+    def test_bad_fn_error(self):
+
+        # Do a bad function without a service name
+        global foo_method
+
+        @pa_dec.avro_message()
+        def foo(request):
+            pass
+
+        foo_method = foo
+
+        settings = {
+            "avro.service.foo": "schema = protocols/test.avpr",
+            "avro.service.bar": "schema = protocols/test.avpr",
+            "avro.service.baz": "schema = protocols/test.avpr"
+        }
+        config = p_config.Configurator(settings=settings)
+        config.include("pyramid_avro")
+        try:
+            config.scan()
+        except AttributeError:
+            pass
+        else:
+            self.assertTrue(False, "AttributeError not raised.")
+
+        foo_method = None

@@ -1,29 +1,3 @@
-"""
-Options to enter into a config:
-
-# Path prefix for route access.
-avro.default_path_prefix = /avro-api
-
-# Protocol file directory.
-avro.protocol_dir = %(here)s/avro_project/protocols
-
-# Run compilation of protocol -> schema on start-up.
-avro.auto_compile = true
-
-# Tools jar must be defined if compile is truthy.
-avro.tools_jar = %(here)s/avro_project/lib/avro-tools-1.7.7.jar
-
-# Define services.
-avro.service.foo =
-    protocol_file = foo.avdl
-    pattern = /avro/foo
-
-avro.service.baz =
-    pattern = /avro/baz
-
-avro.service.other =
-    schema_file = baz.avpr
-"""
 import logging
 
 from pyramid import config as p_config
@@ -49,6 +23,16 @@ SERVICE_DEF_PROPERTIES = frozenset((
 
 
 def get_config_options(configuration):
+    """
+    Given a dictionary of config options, normalize and produce a resultant
+    config dict for any keys prepended with "avro."
+
+    The expectation here is that the configuration dict came straight from
+    the result of parsing a config (.ini) file.
+
+    :param configuration: a config dict.
+    :return: a dict of config values for this plugin.
+    """
     options = CONFIG_DEFAULTS.copy()
     parsed_options = dict(
         (key[len(CONFIG_PREFIX):], val)
@@ -93,6 +77,15 @@ def get_config_options(configuration):
 
 
 def derive_service_path(service_name, url_pattern=None, path_prefix=None):
+    """
+    Given a service name, existing url_pattern, and url path prefix, derive a
+    normalized/finalized url path based on them.
+
+    :param service_name: an avro service name.
+    :param url_pattern: an optional existing url pattern.
+    :param path_prefix: an optional path prefix.
+    :return: a normalized url path.
+    """
 
     if not isinstance(service_name, basestring) or not service_name:
         raise ValueError("Service name must be a non-empty string.")

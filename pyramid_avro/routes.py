@@ -16,12 +16,30 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceResponder(avro_ipc.Responder):
+    """
+    An Avro service responder which executes a callback to get a response.
+    """
 
     def __init__(self, executor, *args, **kwargs):
+        """
+        Overridden init to add an executor callback.
+
+        :param executor: a callback to use for retrieving a response.
+        :param args: regular avro.ipc.Responder args.
+        :param kwargs: regular avro.ipc.Responder kwargs.
+        """
         self.executor = executor
         super(ServiceResponder, self).__init__(*args, **kwargs)
 
     def invoke(self, msg, req):
+        """
+        Call self.executor, then verify that the response fits the protocol
+        that this knows how to speak.
+
+        :param msg: an avro message.
+        :param req: request arguments.
+        :return: an avro response.
+        """
         response = self.executor(msg.name, **req)
         local_message = self.local_protocol.messages.get(msg.name)
         local_response = local_message.response
@@ -64,11 +82,37 @@ class AvroServiceRoute(object):
         self.dispatch[message] = message_impl
 
     def validate_request(self, request):
+        """
+        Place for validating an incoming request.
+
+        Right now, it simply verifies that there is a non-zero content-length.
+
+        Any additional validation required will be added here in the future.
+
+        :param request: a webob request.
+        """
         content_length = int(request.headers["content-length"])
         if request.body_file is None or content_length == 0:
             raise http_exc.HTTPBadRequest()
 
     def __call__(self, request):
+        """
+        Reads the avro request data, then call our responder to respond.
+
+        This will end up executing "execute_command" below.
+
+        After getting a response from the responder, form a pyramid response
+        and return it.
+
+        This is basically the view object registered as a pyramid route.
+
+        TODO: Figure out a way to send the request object through to the
+        handler such that an implementation can modify any attributes of that
+        request that it needs.
+
+        :param request: a pyramid request.
+        :return: a pyramid response.
+        """
         self.validate_request(request)
         reader = avro_ipc.FramedReader(request.body_file)
         try:
@@ -99,6 +143,17 @@ class AvroServiceRoute(object):
         )
 
     def execute_command(self, command, **command_args):
+        """
+        Given the provided command and its arguments, retrieve a registered
+        message callback and execute it.
+
+        Prior to executing the registered callback, attach the provided
+        arguments as an "avro_data" attribute on the request object.
+
+        :param command: an avro message name.
+        :param command_args: avro message arguments.
+        :return: a response from the handler.
+        """
         exists = command in self.protocol.props["messages"].keys()
         if not exists:
             err = "Message not found: '{}'".format(command)

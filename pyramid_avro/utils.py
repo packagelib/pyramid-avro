@@ -9,7 +9,23 @@ from avro import protocol as avro_protocol
 logger = logging.getLogger(__name__)
 
 
-def run_subprocess_command(command, out_stream=sys.stdout, bail=True):
+def run_subprocess_command(command, out_buffer=sys.stdout, exit_on_error=True):
+    """
+    Execute a subprocess based on the provided command.
+
+    If an out_buffer is provided, we assume a buffer interface and write the
+    contents of the subprocess's stdout to it.
+
+    if exit_on_error is provided, we call sys.exit if the exit code of the
+    executed subprocess was non-zero.
+
+    This returns the exit code of the executed subprocess.
+
+    :param command: a string or iterable with strings as a command to exec.
+    :param out_buffer: an optional output buffer.
+    :param exit_on_error: whether or not to kill this process on non-zero exit.
+    :return: the exit code of the subprocess.
+    """
     encoding = sys.stdout.encoding or "utf-8"
     if hasattr(command, "__iter__"):
         command = " ".join(command)
@@ -23,29 +39,37 @@ def run_subprocess_command(command, out_stream=sys.stdout, bail=True):
 
     while proc.poll() is None:
         line = proc.stdout.readline()[:-1].strip()
-        if line and out_stream:
+        if line and out_buffer:
             try:
-                out_stream.write(line.decode(encoding))
+                out_buffer.write(line.decode(encoding))
             except TypeError:
-                out_stream.write(line)
-            out_stream.write("\n")
+                out_buffer.write(line)
+            out_buffer.write("\n")
 
     line = proc.stdout.read()[:-1].strip()
-    if line and out_stream:
+    if line and out_buffer:
         try:
-            out_stream.write(line.decode(encoding))
+            out_buffer.write(line.decode(encoding))
         except TypeError:
-            out_stream.write(line)
-        out_stream.write("\n")
+            out_buffer.write(line)
+        out_buffer.write("\n")
 
     exit_code = proc.returncode
-    if bail and exit_code != 0:
+    if exit_on_error and exit_code != 0:
         sys.exit(exit_code)
 
     return exit_code
 
 
 def compile_protocol(protocol, schema, jar_file):
+    """
+    Given the provided protocol path, schema path, and jar file path, attempt
+    to compile the protocol file into an avro schema.
+
+    :param protocol: an avro protocol file path.
+    :param schema: a file path to write the compiled schema.
+    :param jar_file: a jar file to use for the compilation.
+    """
 
     if None in [protocol, schema, jar_file]:
         raise ValueError("Input must not be NoneType.")
@@ -69,6 +93,13 @@ def compile_protocol(protocol, schema, jar_file):
 
 
 def get_protocol_from_file(schema_path):
+    """
+    Given the provided schema path, load the schema contents into memory and
+    parse them into an avro.protocol.Protocol object.
+
+    :param schema_path: a schema file path.
+    :return: an avro.protocol.Protocol object.
+    """
 
     if not isinstance(schema_path, basestring):
         raise ValueError("Schema path must be of type {}".format(basestring))

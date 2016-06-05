@@ -48,7 +48,6 @@ class PyTest(TestCommand):
 
     def run_tests(self):
         import pytest
-        print("Running: {}".format(" ".join(self.test_args)))
         pytest.main(self.test_args)
 
 
@@ -63,17 +62,16 @@ setup(
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
     ],
+    license="Apache License (2.0)",
     author="Alex Milstead",
     author_email="alex@amilstead.com",
     url="http://github.com/packagelib/pyramid-avro",
-    keywords="web pyramid pylons",
+    keywords="pyramid avro",
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
     zip_safe=False,
     install_requires=REQUIREMENTS,
     tests_require=TEST_REQUIREMENTS,
     test_suite="tests",
-    cmdclass={
-        "test": PyTest
-    }
+    cmdclass={"test": PyTest}
 )

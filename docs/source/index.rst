@@ -11,6 +11,10 @@ This project is a Pyramid plugin built for integrating Avro protocol files into 
 
 Be sure to check out the :ref:`Quickstart Project <quickstart>` documentation to get started.
 
+Python 3 Support
+----------------
+Unfortunately it is not yet available, as this plugin depends on Apache's `avro <https://pypi.python.org/pypi/avro/>`_ library.
+Python3 support will come in later versions.
 
 A Note On Compilation
 ---------------------

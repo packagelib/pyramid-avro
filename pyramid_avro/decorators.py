@@ -24,6 +24,7 @@ class avro_message(p_view.view_config):
         # Mostly a copy of view_config"s impl, just changing the config
         # attachment.
         def callback(context, name, ob):
+            message_impl = wrapped
             # Try to grab the "service_name" from our initial args if possible.
             if settings.get("service_name") is None:
                 # If it's not in the args, see if it's on the object.
@@ -33,18 +34,18 @@ class avro_message(p_view.view_config):
                 if service_name is None:
                     if not inspect.isclass(ob):
                         raise AttributeError(
-                            self._err.format(wrapped.__name__)
+                            self._err.format(message_impl.__name__)
                         )
-
+                    message_impl = message_impl.__get__(ob)
                     service_name = ob.__name__.lower()
-
                 settings["service_name"] = service_name
-
-            # Dump any
-            message_name = settings.pop("message", None) or wrapped.__name__
-            settings["message"] = message_name
+            message_name = settings.pop("message", None)
+            settings["message"] = message_name or message_impl.__name__
             config = context.config.with_package(info.module)
-            config.register_avro_message(message_impl=wrapped, **settings)
+            config.register_avro_message(
+                message_impl=message_impl,
+                **settings
+            )
 
         info = self.venusian.attach(
             wrapped,

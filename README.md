@@ -25,3 +25,6 @@ In addition to not wanting a compilation at runtime in non-dev environments, you
 Actual Docs
 -----------
 The official documentation can be found at: https://pyramid-avro.readthedocs.org/
+
+| Coverage | [![Coverage Status](https://coveralls.io/repos/github/packagelib/pyramid-avro/badge.svg?branch=master)](https://coveralls.io/github/packagelib/pyramid-avro?branch=master) |
+| Build | [![Build Status](https://travis-ci.org/packagelib/pyramid-avro.svg?branch=alex%2Fadd-coverage-ci)](https://travis-ci.org/packagelib/pyramid-avro) |

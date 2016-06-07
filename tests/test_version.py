@@ -12,4 +12,4 @@ class VersionTest(unittest.TestCase):
 
     def test_dunder(self):
         self.assertIsInstance(version.__version__, str)
-        self.assertEqual("0.0.1", version.__version__)
+        self.assertEqual("0.0.2", version.__version__)

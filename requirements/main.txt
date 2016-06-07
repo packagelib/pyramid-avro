@@ -1,2 +1,2 @@
 avro>=1.7
-pyramid>=1.4
+pyramid>=1.6

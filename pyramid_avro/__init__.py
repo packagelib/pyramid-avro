@@ -5,6 +5,7 @@ import traceback
 from pyramid import config as p_config
 from pyramid import exceptions as p_exc
 
+from . import py2_compat
 from . import routes
 from . import settings
 from . import utils

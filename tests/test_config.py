@@ -67,7 +67,7 @@ class AddAvroRouteAutoCompileTest(unittest.TestCase):
             pa.add_avro_route(config, "foo", schema=dummy_schema_file)
         except p_config.ConfigurationError as ex:
             expected_error = "Cannot auto_compile without tools_jar defined."
-            self.assertEqual(expected_error, ex.message)
+            self.assertEqual(expected_error, str(ex))
         else:
             self.assertTrue(False, "Configuration exception not raised.")
 
@@ -78,7 +78,7 @@ class AddAvroRouteAutoCompileTest(unittest.TestCase):
             pa.add_avro_route(config, "foo", schema=dummy_schema_file)
         except p_config.ConfigurationError as ex:
             expected_error = "No such file or directory: bogus-tools-jar"
-            self.assertEqual(expected_error, ex.message)
+            self.assertEqual(expected_error, str(ex))
         else:
             self.assertTrue(False, "Configuration exception not raised.")
 
@@ -89,7 +89,7 @@ class AddAvroRouteAutoCompileTest(unittest.TestCase):
             pa.add_avro_route(config, "foo", schema=dummy_schema_file)
         except p_config.ConfigurationError as ex:
             expected_error = "Cannot auto_compile without a protocol defined."
-            self.assertEqual(expected_error, ex.message)
+            self.assertEqual(expected_error, str(ex))
         else:
             self.assertTrue(False, "Configuration exception not raised.")
 
@@ -167,7 +167,7 @@ class AddAvroRouteTest(unittest.TestCase):
             try:
                 config.commit()
             except p_config.ConfigurationError as ex:
-                message = ex.message
+                message = str(ex)
                 self.assertIn(err.message, message)
 
     def test_bad_schema_file_read(self):
@@ -181,8 +181,8 @@ class AddAvroRouteTest(unittest.TestCase):
             try:
                 config.commit()
             except p_config.ConfigurationExecutionError as ex:
-                message = ex.evalue.message
-                self.assertIn(err.message, message)
+                message = str(ex.evalue)
+                self.assertIn(str(err), message)
             else:
                 self.assertTrue(False, "Configuration exception not raised.")
 
@@ -335,7 +335,7 @@ class RegisterAvroMessageTest(unittest.TestCase):
         except p_config.ConfigurationExecutionError as ex:
             expected_err = "Message 'some_global_fn' not defined."
             self.assertIsInstance(ex.evalue, avro_schema.AvroException)
-            self.assertEqual(expected_err, ex.evalue.message)
+            self.assertEqual(expected_err, str(ex.evalue))
         else:
             self.assertTrue(False, "AvroException not raised.")
 
@@ -362,6 +362,6 @@ class RegisterAvroMessageTest(unittest.TestCase):
             config.commit()
         except p_config.ConfigurationExecutionError as ex:
             expected_err = "Service 'foo' has no route defined."
-            self.assertIn(expected_err, ex.evalue.message)
+            self.assertIn(expected_err, str(ex.evalue))
         else:
             self.assertTrue(False, "Configuration error not raised.")

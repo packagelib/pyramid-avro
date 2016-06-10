@@ -17,7 +17,7 @@ protocol_dir = os.path.join(here, "protocols")
 dummy_protocol_file = os.path.join(protocol_dir, "test.avpr")
 with open(dummy_protocol_file) as _file:
     dummy_protocol = _file.read()
-dummy_avro_protocol = avro_protocol.parse(dummy_protocol)
+dummy_avro_protocol = avro_protocol.Parse(dummy_protocol)
 
 
 class HTTPBogus(http_exc.HTTPOk):
@@ -44,8 +44,10 @@ class CachedBufferTransceiver(object):
     def format_message(cls, message):
         with io.BytesIO() as _buffer:
             framed_writer = avro_ipc.FramedWriter(_buffer)
-            framed_writer.write_framed_message(message)
-            message = framed_writer.writer.getvalue()
+            if not hasattr(framed_writer, "_writer"):
+                framed_writer._writer = framed_writer.writer
+            framed_writer.Write(message)
+            message = framed_writer._writer.getvalue()
         return message
 
     @classmethod
@@ -54,13 +56,16 @@ class CachedBufferTransceiver(object):
             _buffer.write(response.body)
             _buffer.seek(os.SEEK_SET)
             framed_reader = avro_ipc.FramedReader(_buffer)
-            response = framed_reader.read_framed_message()
+            response = framed_reader.Read()
         return response
 
     def transceive(self, request):
         message = self.format_message(request)
         self.cached_request_buffer = io.BytesIO()
         self.cached_request_buffer.write(message)
+
+    def Transceive(self, request):
+        return self.transceive(request)
 
 
 class CachedBufferRequestor(avro_ipc.BaseRequestor):
@@ -70,6 +75,9 @@ class CachedBufferRequestor(avro_ipc.BaseRequestor):
         self.request_buffer = io.BytesIO(
             self.transceiver.cached_request_buffer.getvalue()
         )
+
+    def _IssueRequest(self, *args, **kwargs):
+        return self.issue_request(*args, **kwargs)
 
 
 class RuntimeAppTransceiver(CachedBufferTransceiver):
@@ -93,12 +101,17 @@ class ServiceResponderTest(unittest.TestCase):
         def bad_return_type(command, **args):
             return {}
 
-        protocol = avro_protocol.parse(dummy_protocol)
-        get_msg = protocol.messages.get("get")
+        protocol = avro_protocol.Parse(dummy_protocol)
+        _messages = getattr(
+            protocol,
+            "message_map",
+            getattr(protocol, "messages")
+        )
+        get_msg = _messages.get("get")
         responder = pa_routes.ServiceResponder(bad_return_type, protocol)
         self.assertRaises(
             avro_ipc.AvroRemoteException,
-            responder.invoke,
+            responder.Invoke,
             get_msg,
             {"arg1": "arg1"}
         )
@@ -107,10 +120,15 @@ class ServiceResponderTest(unittest.TestCase):
         def good_return_type(command, **args):
             return "[{}] - arg1: {}".format(command, args["arg1"])
 
-        protocol = avro_protocol.parse(dummy_protocol)
-        get_msg = protocol.messages.get("get")
+        protocol = avro_protocol.Parse(dummy_protocol)
+        _messages = getattr(
+            protocol,
+            "message_map",
+            getattr(protocol, "messages")
+        )
+        get_msg = _messages.get("get")
         responder = pa_routes.ServiceResponder(good_return_type, protocol)
-        response = responder.invoke(get_msg, {"arg1": "arg1"})
+        response = responder.Invoke(get_msg, {"arg1": "arg1"})
         self.assertEqual("[get] - arg1: arg1", response)
 
 
@@ -153,7 +171,7 @@ class AvroServiceRouteTest(unittest.TestCase):
                 dummy_avro_protocol,
                 CachedBufferTransceiver(self.app, "/foo")
             )
-            requestor.request("get", {"arg1": "arg"})
+            requestor.Request("get", {"arg1": "arg"})
 
             body = requestor.request_buffer.getvalue()
             environ["wsgi.input"] = io.BytesIO(body)
@@ -171,7 +189,7 @@ class AvroServiceRouteTest(unittest.TestCase):
 
         route, request = self._route_and_request()
         with mock.patch(
-                "avro.ipc.FramedReader.read_framed_message",
+                "avro.ipc.FramedReader.Read",
                 side_effect=avro_ipc.ConnectionClosedException()
         ):
             response = route(request)
@@ -180,7 +198,7 @@ class AvroServiceRouteTest(unittest.TestCase):
     def test_view_http_exception(self):
         route, request, = self._route_and_request()
         with mock.patch(
-            "pyramid_avro.routes.ServiceResponder.respond",
+            "pyramid_avro.routes.ServiceResponder.Respond",
             side_effect=HTTPBogus()
         ):
             response = route(request)
@@ -189,7 +207,7 @@ class AvroServiceRouteTest(unittest.TestCase):
     def test_view_generic_exception(self):
         route, request = self._route_and_request()
         with mock.patch(
-            "pyramid_avro.routes.ServiceResponder.respond",
+            "pyramid_avro.routes.ServiceResponder.Respond",
             side_effect=Exception("Generic Exception")
         ):
             response = route(request)
@@ -216,9 +234,9 @@ class AccessWithClientTest(unittest.TestCase):
 
     def _do_request(self, method, args):
         app_transceiver = RuntimeAppTransceiver(self.app, "/foo")
-        protocol = avro_protocol.parse(dummy_protocol)
+        protocol = avro_protocol.Parse(dummy_protocol)
         requestor = avro_ipc.Requestor(protocol, app_transceiver)
-        response = requestor.request(method, args)
+        response = requestor.Request(method, args)
         return app_transceiver.status, response
 
     def test_good_client_good_impl(self):

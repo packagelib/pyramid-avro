@@ -59,8 +59,12 @@ class AvroMessageDecorator(unittest.TestCase):
             name="avro.foo"
         )
         self.assertIsNotNone(foo_utility)
-        self.assertEqual(foo_utility.dispatch["get"], Foo.get.im_func)
-        self.assertEqual(foo_utility.dispatch["get2"], Foo.get_other.im_func)
+
+        actual = getattr(Foo.get, "im_func", Foo.get)
+        self.assertEqual(foo_utility.dispatch["get"], actual)
+
+        actual = getattr(Foo.get_other, "im_func", Foo.get_other)
+        self.assertEqual(foo_utility.dispatch["get2"], actual)
 
         # Test "bar"'s service route/registry.
         bar_utility = config.registry.queryUtility(
@@ -68,14 +72,11 @@ class AvroMessageDecorator(unittest.TestCase):
             name="avro.bar"
         )
         self.assertIsNotNone(bar_utility)
-        self.assertEqual(
-            bar_utility.dispatch["get"],
-            Protocol.get.im_func
-        )
-        self.assertEqual(
-            bar_utility.dispatch["get2"],
-            Protocol.get_other.im_func
-        )
+        actual = getattr(Protocol.get, "im_func", Protocol.get)
+        self.assertEqual(bar_utility.dispatch["get"], actual)
+
+        actual = getattr(Protocol.get_other, "im_func", Protocol.get_other)
+        self.assertEqual(bar_utility.dispatch["get2"], actual)
 
         # Test "baz"'s service route/registry.
         baz_utility = config.registry.queryUtility(

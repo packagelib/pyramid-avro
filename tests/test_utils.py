@@ -3,7 +3,7 @@ import os
 import io
 import tempfile
 import unittest
-import StringIO
+import sys
 
 import mock
 from avro import protocol as avro_protocol
@@ -16,13 +16,14 @@ sub_proc_cmd = "pyramid_avro.utils.run_subprocess_command"
 class RunSubprocessCommandTest(unittest.TestCase):
 
     def test_function(self):
-        _stdout_buffer = StringIO.StringIO()
+        _stdout_buffer = io.BytesIO()
         _stdout_buffer.seek(os.SEEK_SET)
 
         def _dummy_poll():
-            if _stdout_buffer.getvalue() == "":
-                _stdout_buffer.write("foo\n")
-                _stdout_buffer.write("foo\n")
+            if not _stdout_buffer.getvalue():
+                _stdout_buffer.seek(os.SEEK_SET)
+                _stdout_buffer.write(b"foo\n")
+                _stdout_buffer.write(b"foo\n")
                 _stdout_buffer.seek(os.SEEK_SET)
                 return None
             return 0
@@ -38,10 +39,10 @@ class RunSubprocessCommandTest(unittest.TestCase):
                 ["echo", "'foo'"],
                 out_buffer=_capture_buffer
             )
-            self.assertEqual(
-                _capture_buffer.getvalue(),
-                "foo\nfoo\n"
-            )
+            output = _capture_buffer.getvalue()
+            if not isinstance(output, str):
+                output = output.decode("utf-8")
+            self.assertEqual("foo\nfoo\n", output)
 
         with mock.patch("pyramid_avro.utils.subprocess") as subprocess:
             subprocess.Popen.return_value.poll = _dummy_poll

@@ -41,9 +41,9 @@ class ServiceResponder(avro_ipc.Responder):
         :return: an avro response.
         """
         response = self.executor(msg.name, **req)
-        local_message = self.local_protocol.messages.get(msg.name)
+        local_message = self.local_protocol.message_map.get(msg.name)
         local_response = local_message.response
-        is_valid = avro_io.validate(local_response, response)
+        is_valid = avro_io.Validate(local_response, response)
         if not is_valid:
             err = "Server response did not conform to its local schema."
             logging.error(
@@ -53,6 +53,10 @@ class ServiceResponder(avro_ipc.Responder):
             )
             raise avro_ipc.AvroRemoteException(err)
         return response
+
+    def Invoke(self, msg, req):
+        """avro-python3 support."""
+        return self.invoke(msg, req)
 
 
 class IAvroServiceRoute(zi.Interface):
@@ -70,11 +74,11 @@ class AvroServiceRoute(object):
     def __init__(self, path, schema):
         self.path = path
         self.dispatch = {}
-        self.protocol = avro_protocol.parse(schema)
+        self.protocol = avro_protocol.Parse(schema)
         self.responder = ServiceResponder(self.execute_command, self.protocol)
 
     def register_message_impl(self, message, message_impl):
-        if self.protocol.messages.get(message) is None:
+        if self.protocol.message_map.get(message) is None:
             raise avro_schema.AvroException(
                 "Message '{}' not defined.".format(message)
             )
@@ -116,13 +120,13 @@ class AvroServiceRoute(object):
         self.validate_request(request)
         reader = avro_ipc.FramedReader(request.body_file)
         try:
-            request_data = reader.read_framed_message()
+            request_data = reader.Read()
         except avro_ipc.ConnectionClosedException:
             logger.exception("Failed to process request.")
             return http_exc.HTTPBadRequest()
 
         try:
-            rpc_response = self.responder.respond(request_data)
+            rpc_response = self.responder.Respond(request_data)
         except http_exc.HTTPException as ex:
             logger.exception("HTTP exception while processing message.")
             return ex
@@ -132,7 +136,7 @@ class AvroServiceRoute(object):
 
         with io.BytesIO() as _body_file:
             writer = avro_ipc.FramedWriter(_body_file)
-            writer.write_framed_message(rpc_response)
+            writer.Write(rpc_response)
             response_body = _body_file.getvalue()
 
         logger.debug("Finished request. Returning response.")
@@ -154,7 +158,7 @@ class AvroServiceRoute(object):
         :param command_args: avro message arguments.
         :return: a response from the handler.
         """
-        exists = command in self.protocol.props["messages"].keys()
+        exists = command in self.protocol.message_map.keys()
         if not exists:
             err = "Message not found: '{}'".format(command)
             raise avro_ipc.AvroRemoteException(err)

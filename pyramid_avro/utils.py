@@ -44,7 +44,7 @@ def run_subprocess_command(command, out_buffer=sys.stdout, exit_on_error=True):
                 out_buffer.write(line.decode(encoding))
             except TypeError:
                 out_buffer.write(line)
-            out_buffer.write("\n")
+            out_buffer.write(b"\n")
 
     line = proc.stdout.read()[:-1].strip()
     if line and out_buffer:
@@ -52,7 +52,7 @@ def run_subprocess_command(command, out_buffer=sys.stdout, exit_on_error=True):
             out_buffer.write(line.decode(encoding))
         except TypeError:
             out_buffer.write(line)
-        out_buffer.write("\n")
+        out_buffer.write(b"\n")
 
     exit_code = proc.returncode
     if exit_on_error and exit_code != 0:
@@ -108,7 +108,7 @@ def get_protocol_from_file(schema_path):
         raise OSError("No such file or directory '{}'".format(schema_path))
 
     with open(schema_path) as _file:
-        protocol = avro_protocol.parse(_file.read())
+        protocol = avro_protocol.Parse(_file.read())
 
     return protocol
 

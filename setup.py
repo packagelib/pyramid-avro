@@ -1,4 +1,5 @@
 import os
+import sys
 
 from setuptools import find_packages
 from setuptools import setup
@@ -9,13 +10,20 @@ here = os.path.abspath(os.path.dirname(__file__))
 test_dir = os.path.join(here, "tests")
 __version__ = None
 
+avro_ver = ">=1.7"
+
+if sys.version_info[0] == 2:
+    avro_req = "avro"
+else:
+    avro_req = "avro-python3"
+
 
 with open(os.path.join(here, "README.md")) as _file:
     README = _file.read().strip()
 with open(os.path.join(here, "CHANGES.txt")) as _file:
     CHANGES = _file.read().strip()
 with open(os.path.join(here, "requirements", "main.txt")) as _file:
-    REQUIREMENTS = [l.strip() for l in _file.readlines()]
+    REQUIREMENTS = [avro_req] + [l.strip() for l in _file.readlines()]
 with open(os.path.join(here, "requirements", "test.txt")) as _file:
     TEST_REQUIREMENTS = REQUIREMENTS[:]
     TEST_REQUIREMENTS += [l.strip() for l in _file.readlines()]

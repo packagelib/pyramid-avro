@@ -3,10 +3,13 @@ pyramid-avro
 
 This project is a Pyramid plugin built for integrating Avro protocol files into a pyramid application.
 
-Python 3 Support
-----------------
-Unfortunately it is not yet available, as this plugin depends on Apache's [avro](https://pypi.python.org/pypi/avro/) library.
-Python3 support will come in later versions.
+Python Version Support
+----------------------
+Current Supported Versions:
+* 2.7
+* 3.3
+* 3.4
+* 3.5
 
 A Note On Compilation
 ---------------------

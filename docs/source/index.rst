@@ -22,10 +22,14 @@ Be sure to check out the :ref:`Quickstart Project <quickstart>` documentation to
         :alt: Build Status
 :License: Apache License (2.0)
 
-Python 3 Support
-----------------
-Unfortunately it is not yet available, as this plugin depends on Apache's `avro <https://pypi.python.org/pypi/avro/>`_ library.
-Python3 support will come in later versions.
+Python Version Support
+----------------------
+Current Supported Versions:
+
+* 2.7
+* 3.3
+* 3.4
+* 3.5
 
 A Note On Compilation
 ---------------------
